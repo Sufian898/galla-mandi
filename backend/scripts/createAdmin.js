@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const Admin = require('../models/Admin');
 require('dotenv').config();
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/Company';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://sufianali122nb:1234sufi@cluster0.0qnf0nx.mongodb.net/?appName=Cluster0';
 
 async function createAdmin() {
   try {
@@ -24,14 +24,14 @@ async function createAdmin() {
     // Create default admin
     const admin = new Admin({
       username: 'admin',
-      email: 'admin@bexon.com',
+      email: 'admin@gmail.com',
       password: 'admin123', // Will be hashed automatically
       role: 'super_admin'
     });
 
     await admin.save();
     console.log('Default admin created successfully!');
-    console.log('Email: admin@bexon.com');
+    console.log('Email: admin@gmail.com');
     console.log('Password: admin123');
     console.log('Please change the password after first login!');
 
