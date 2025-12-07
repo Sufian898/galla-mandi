@@ -50,19 +50,52 @@ const corsOptions = {
   optionsSuccessStatus: 204
 };
 
+// Manual CORS middleware - MUST be before all routes
+// This ensures OPTIONS preflight requests are handled correctly on Vercel
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  
+  // Check if origin is allowed
+  if (origin) {
+    const normalizedOrigin = origin.toLowerCase().replace(/\/$/, '');
+    const normalizedAllowed = allowedOrigins.map(o => o.toLowerCase().replace(/\/$/, ''));
+    
+    if (normalizedAllowed.includes(normalizedOrigin) || process.env.NODE_ENV === 'development') {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+    } else {
+      // Temporarily allow all origins for testing - change this later for security
+      res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+  } else {
+    // Allow requests with no origin in development
+    if (process.env.NODE_ENV === 'development') {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+    }
+  }
+  
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Max-Age', '86400');
+  
+  // Handle preflight requests - CRITICAL for CORS to work
+  if (req.method === 'OPTIONS') {
+    return res.status(204).end();
+  }
+  
+  next();
+});
+
 // Debug middleware to log requests (remove in production if not needed)
 app.use((req, res, next) => {
   console.log(`${req.method} ${req.path} - Origin: ${req.headers.origin || 'No origin'}`);
   next();
 });
 
-// Middleware
+// Additional CORS middleware as backup
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-// Handle preflight requests explicitly
-app.options('*', cors(corsOptions));
 
 // MongoDB Connection (optimized for serverless)
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/Company';
