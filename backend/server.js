@@ -13,7 +13,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // MongoDB Connection (optimized for serverless)
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/Company';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://sufianali122nb:1234sufi@cluster0.0qnf0nx.mongodb.net/?appName=Cluster0';
 
 // Cache the connection to reuse in serverless environment
 let cached = global.mongoose;
