@@ -3,7 +3,7 @@ const Admin = require('../models/Admin');
 require('dotenv').config();
 
 // Use environment variable or fallback
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/Company';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://sufianali122nb:1234sufi@cluster0.0qnf0nx.mongodb.net/gallamandi?appName=Cluster0';
 
 async function createAdmin() {
   try {
