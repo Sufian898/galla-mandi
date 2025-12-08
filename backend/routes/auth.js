@@ -97,26 +97,54 @@ router.post('/admin/login', async (req, res) => {
   try {
     const { email, password } = req.body;
 
+    // Validate input
     if (!email || !password) {
       return res.status(400).json({ message: 'Please provide email and password' });
     }
 
-    // Find admin
-    const admin = await Admin.findOne({ email });
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ message: 'Invalid email format' });
+    }
+
+    // Validate password length
+    if (password.length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters' });
+    }
+
+    // Normalize email (lowercase and trim)
+    const normalizedEmail = email.trim().toLowerCase();
+
+    console.log(`Admin login attempt for email: ${normalizedEmail}`);
+
+    // Find admin by normalized email
+    const admin = await Admin.findOne({ email: normalizedEmail });
 
     if (!admin) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+      console.log(`Admin not found for email: ${normalizedEmail}`);
+      return res.status(401).json({ message: 'Invalid email or password' });
     }
+
+    console.log(`Admin found: ${admin.username}`);
 
     // Check password
     const isMatch = await admin.comparePassword(password);
 
     if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+      console.log(`Password mismatch for admin: ${admin.username}`);
+      return res.status(401).json({ message: 'Invalid email or password' });
     }
+
+    console.log(`Login successful for admin: ${admin.username}`);
 
     // Generate token
     const token = generateToken({ ...admin.toObject(), role: 'super_admin' });
+
+    if (!token) {
+      console.error('Token generation failed');
+      return res.status(500).json({ message: 'Failed to generate authentication token' });
+    }
 
     res.json({
       message: 'Login successful',
