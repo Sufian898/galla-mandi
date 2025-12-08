@@ -1,174 +1,108 @@
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-const dotenv = require('dotenv');
+const express = require("express");
+const mongoose = require("mongoose");
+const dotenv = require("dotenv");
 
 dotenv.config();
-
 const app = express();
 
-// CORS Configuration
+// ------------------ CORS FIX (Vercel Compatible) ------------------
 const allowedOrigins = [
-  'https://atsjourney.com',
-  'https://www.atsjourney.com',
-  'http://localhost:3000',
-  'http://localhost:3001',
-  'http://127.0.0.1:3000',
-  'http://127.0.0.1:3001'
+  "https://atsjourney.com",
+  "https://www.atsjourney.com",
+  "http://localhost:3000",
+  "http://localhost:3001",
+  "http://127.0.0.1:3000",
+  "http://127.0.0.1:3001",
 ];
 
-const corsOptions = {
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) {
-      return callback(null, true);
-    }
-    
-    // Normalize origin (remove trailing slash, convert to lowercase for comparison)
-    const normalizedOrigin = origin.toLowerCase().replace(/\/$/, '');
-    const normalizedAllowed = allowedOrigins.map(o => o.toLowerCase().replace(/\/$/, ''));
-    
-    // Check if origin is in allowed list (case-insensitive)
-    if (normalizedAllowed.includes(normalizedOrigin)) {
-      callback(null, true);
-    } else if (process.env.NODE_ENV === 'development') {
-      // In development, allow all origins
-      callback(null, true);
-    } else {
-      // Log the blocked origin for debugging
-      console.log('CORS blocked origin:', origin);
-      // Allow for now to test - you can restrict this later
-      callback(null, true);
-    }
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
-  exposedHeaders: ['Content-Range', 'X-Content-Range'],
-  maxAge: 86400, // 24 hours
-  preflightContinue: false,
-  optionsSuccessStatus: 204
-};
-
-// Manual CORS middleware - MUST be before all routes
-// This ensures OPTIONS preflight requests are handled correctly on Vercel
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  
-  // Check if origin is allowed
-  if (origin) {
-    const normalizedOrigin = origin.toLowerCase().replace(/\/$/, '');
-    const normalizedAllowed = allowedOrigins.map(o => o.toLowerCase().replace(/\/$/, ''));
-    
-    if (normalizedAllowed.includes(normalizedOrigin) || process.env.NODE_ENV === 'development') {
-      res.setHeader('Access-Control-Allow-Origin', origin);
-    } else {
-      // Temporarily allow all origins for testing - change this later for security
-      res.setHeader('Access-Control-Allow-Origin', origin);
-    }
-  } else {
-    // Allow requests with no origin in development
-    if (process.env.NODE_ENV === 'development') {
-      res.setHeader('Access-Control-Allow-Origin', '*');
-    }
+
+  if (origin && allowedOrigins.includes(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
   }
-  
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Max-Age', '86400');
-  
-  // Handle preflight requests - CRITICAL for CORS to work
-  if (req.method === 'OPTIONS') {
-    return res.status(204).end();
+
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Authorization, X-Requested-With, Accept"
+  );
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+  );
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
   }
-  
+
   next();
 });
 
-// Debug middleware to log requests (remove in production if not needed)
-app.use((req, res, next) => {
-  console.log(`${req.method} ${req.path} - Origin: ${req.headers.origin || 'No origin'}`);
-  next();
-});
-
-// Additional CORS middleware as backup
-app.use(cors(corsOptions));
+// ------------------ EXPRESS ------------------
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// MongoDB Connection (optimized for serverless)
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/Company';
+// ------------------ MONGODB (Cached for Vercel) ------------------
+const MONGODB_URI =
+  process.env.MONGODB_URI ||
+  "mongodb+srv://sufianali122nb:1234sufi@cluster0.0qnf0nx.mongodb.net/?appName=Cluster0";
 
-// Cache the connection to reuse in serverless environment
 let cached = global.mongoose;
 
-if (!cached) {
-  cached = global.mongoose = { conn: null, promise: null };
-}
+if (!cached) cached = global.mongoose = { conn: null, promise: null };
 
 async function connectDB() {
-  if (cached.conn) {
-    return cached.conn;
-  }
+  if (cached.conn) return cached.conn;
 
   if (!cached.promise) {
-    const opts = {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-      bufferCommands: false,
-    };
-
-    cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
-      console.log('MongoDB Connected Successfully');
-      return mongoose;
-    });
+    cached.promise = mongoose
+      .connect(MONGODB_URI, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+      })
+      .then((mongoose) => {
+        console.log("MongoDB Connected Successfully");
+        return mongoose;
+      })
+      .catch((err) => {
+        console.error("MongoDB Error:", err);
+      });
   }
 
-  try {
-    cached.conn = await cached.promise;
-  } catch (e) {
-    cached.promise = null;
-    console.error('MongoDB Connection Error:', e);
-    throw e;
-  }
-
+  cached.conn = await cached.promise;
   return cached.conn;
 }
 
-// Connect to MongoDB
-connectDB().catch((err) => console.error('MongoDB Connection Error:', err));
+connectDB();
 
-// Routes
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/admin', require('./routes/admin'));
-app.use('/api/company', require('./routes/company'));
-app.use('/api/bill', require('./routes/bill'));
-app.use('/api/sale', require('./routes/sale'));
-app.use('/api/recovery', require('./routes/recovery'));
-app.use('/api/ledger', require('./routes/ledger'));
-app.use('/api/expense-ledger', require('./routes/expenseLedger'));
-app.use('/api/payment-method', require('./routes/paymentMethod'));
-app.use('/api/bank', require('./routes/bank'));
+// ------------------ ROUTES ------------------
+app.use("/api/auth", require("./routes/auth"));
+app.use("/api/admin", require("./routes/admin"));
+app.use("/api/company", require("./routes/company"));
+app.use("/api/bill", require("./routes/bill"));
+app.use("/api/sale", require("./routes/sale"));
+app.use("/api/recovery", require("./routes/recovery"));
+app.use("/api/ledger", require("./routes/ledger"));
+app.use("/api/expense-ledger", require("./routes/expenseLedger"));
+app.use("/api/payment-method", require("./routes/paymentMethod"));
+app.use("/api/bank", require("./routes/bank"));
 
-// Health check
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', message: 'Server is running' });
+// ------------------ HEALTH CHECK ------------------
+app.get("/api/health", (req, res) => {
+  res.json({ status: "OK", message: "Server running fine" });
 });
 
-// Root route
-app.get('/', (req, res) => {
-  res.json({ message: 'Bexon Backend API' });
+// ------------------ ROOT ------------------
+app.get("/", (req, res) => {
+  res.json({ message: "Bexon Backend API" });
 });
 
-// Only listen if not in serverless environment (Vercel)
+// ------------------ LOCAL SERVER ONLY ------------------
 if (!process.env.VERCEL) {
   const PORT = process.env.PORT || 5000;
-  app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-  });
+  app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 }
 
 // Export for Vercel
 module.exports = app;
-
