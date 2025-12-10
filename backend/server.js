@@ -12,6 +12,8 @@ const allowedOrigins = [
   'https://atsjourney.com',
   'https://www.atsjourney.com',
   'http://localhost:3000',
+  'https://easycomission.com',
+'https://www.easycomission.com',
   'http://localhost:5173',
   'http://127.0.0.1:3000',
   'http://127.0.0.1:5173'
