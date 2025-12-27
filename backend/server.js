@@ -16,7 +16,8 @@ const allowedOrigins = [
   'http://127.0.0.1:3000',
   'https://easycomission.com',
 'https://www.easycomission.com',
-  'http://127.0.0.1:5173'
+  'http://127.0.0.1:5173',
+  'https://manditradeerp.com'
 ];
 
 // --- FIXED CORS (Vercel-Compatible) ---
